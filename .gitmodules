@@ -1,0 +1,3 @@
+[submodule "PyHTK"]
+	path = PyHTK
+	url = git://github.com/danijel3/PyHTK.git
