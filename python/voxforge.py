@@ -165,7 +165,48 @@ def loadFile(path):
     
     os.remove('temp')
 
+    tf.close()
+
     return ret
+
+def loadAudio(archive, audioname):
+    """ Reads an audio file from within the archive.
+
+        Args:
+            archive(string): path to the archive (tgz)
+
+            audioname(string): name of the file (without extension)
+
+        Returns:
+            numpy array: loaded audio signal or empty array if file not found
+    """
+    tf=tarfile.open(archive)
+    
+    n=tf.getnames()    
+
+    ext='.flac'
+    if any(item.endswith('/wav') for item in n):
+        ext='.wav'
+        
+    p=filter(lambda x : x.endswith(audioname+ext),n)
+
+    if len(p)==0:
+        return np.array([])
+
+    try:
+        ft=tf.extractfile(p[0])
+    except KeyError:
+        return np.array([])
+
+    shutil.copyfileobj(ft,open('temp','wb'))
+    sf=Sndfile('temp')
+    data=sf.read_frames(sf.nframes,dtype=np.int16)
+        
+    os.remove('temp')
+
+    tf.close()
+
+    return data
 
 def loadBySpeaker(path, limit=None):
     """ Load a directory containing the Voxforge database and organize by speaker.
@@ -387,20 +428,11 @@ def loadAlignedCorpus(ali_file,audio_path):
             list: updated list of aligend utterances stored as AliUtt objects (with data loaded)
     """
     with gzip.open(ali_file) as f:    
-        ali=pickle.load(f)
-        
-    arch_map={}
-    for utt in ali:
-        if not utt.archive in arch_map:
-            arch_map[utt.archive]=[]
-        arch_map[utt.archive].append(utt)
-        
-    ali_out=[]
-    for arch in tqdm(arch_map.iteritems(),total=len(arch_map)):
-        f=loadFile(audio_path+'/'+arch[0]+'.tgz')
-        for utt in arch[1]:
-            assert utt.audiofile in f.data
-            utt.data=f.data[utt.audiofile]
-            ali_out.append(utt)
+        ali=pickle.load(f)   
             
-    return ali_out
+    for utt in tqdm(ali):
+        data=loadAudio(audio_path+'/'+utt.archive+'.tgz',utt.audiofile)
+        assert data.size > 0
+        utt.data=data
+            
+    return ali
