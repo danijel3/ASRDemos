@@ -4,11 +4,27 @@ from random import shuffle
 
 class Corpus:
 
-    def __init__(self,filename,utts_loaded=None,load_normalized=False):        
+    def __init__(self,filename,utts_loaded=None,load_normalized=False,merge_utts=False):        
+
+        self.filename=filename
+        self.utts_loaded=utts_loaded
+        self.load_normalized=load_normalized        
+        self.merge_utts=merge_utts
+
         self.h5f=h5py.File(filename,'r')
         self.utts=[]
         for utt in self.h5f.keys():
             self.utts.append(utt)
+
+        self.reset_utts_loaded(utts_loaded)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def reset_utts_loaded(self,utts_loaded):
 
         if not utts_loaded:
             utts_loaded=len(self.utts)
@@ -17,26 +33,35 @@ class Corpus:
 
         self.r=range(0,un,utts_loaded)
         self.n=len(self.r)
-        self.r.append(un)        
-        shuffle(self.utts)
-        self.c=0
+        self.r.append(un)                
 
-        self.load_normalized=load_normalized
+        self.reset()
+
+
+    def split(self,ratio):
+        a=Corpus(filename=self.filename,utts_loaded=self.utts_loaded,
+            load_normalized=self.load_normalized,merge_utts=self.merge_utts)
+        b=Corpus(filename=self.filename,utts_loaded=self.utts_loaded,
+            load_normalized=self.load_normalized,merge_utts=self.merge_utts)
+
+        un_r=int(len(self.utts)*ratio)
+
+        a.utts=self.utts[:un_r]
+        b.utts=self.utts[un_r:]
+
+        a.reset_utts_loaded(self.utts_loaded)
+        b.reset_utts_loaded(self.utts_loaded)
+
+        return (a,b)
+
 
     def __iter__(self):
-        return self
-
-    def next(self):
-        if self.c>=self.n:
-            raise StopIteration
-        else:   
-            self.c+=1
-            return get(slice(self.r[self.c],self.r[self.c+1]))
+        for c in range(self.n):
+            yield get(slice(self.r[c],self.r[c+1]))
 
 
     def reset(self):
         shuffle(self.utts)
-        self.c=0
 
     def close(self):
         self.h5f.close()
@@ -57,5 +82,9 @@ class Corpus:
             g=self.h5f[utt]
             inputs.append(g[in_name][()])
             outputs.append(g['out'][()])
+
+        if self.merge_utts:
+            inputs=np.vstack(inputs)
+            outputs=np.concatenate(outputs)
 
         return (inputs,outputs)
