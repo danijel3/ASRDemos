@@ -279,6 +279,12 @@ timit39=['aa', 'iy', 'ch', 'ae', 'eh', 'ah', 'ih', 'ey', 'aw', 'ay', 'er', 'ng',
 def reduce183to61id(ids):
     return r183t61id[ids]
 
+def reduce183to61idseq(idseq):
+    ret=[]
+    for s in idseq:
+        ret.append(r183t61id[s])
+    return np.array(ret)
+
 def reduce61to39(seq):
     ret=[]
     for s in seq:
