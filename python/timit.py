@@ -8,6 +8,7 @@ from tqdm import *
 sys.path.append('../PyHTK/python')
 
 from HTKFeat import MFCC_HTK
+from TextGrid import *
 
 
 class Segment:
@@ -91,6 +92,54 @@ def prepare_corp(mlf,statelist,audio_path):
             utt.phones.append(states[seg.text])
             utt.ph_lens.append(seg.end-seg.beg)
         
+        ret.append(utt)
+    return ret
+
+def prepare_corp_dir(list_file,path,win_len=0.025,win_shift=0.01):
+
+    with open(list_file) as f:
+        file_list=f.read().splitlines()
+
+    ret=[]
+    for f in tqdm(file_list):
+        utt=Utt()
+       
+        utt.name=f
+        
+        fs,utt.data=read(path+'/'+f+'.wav')
+        
+        assert fs == 16000
+
+        tg_file=path+'/'+f+'.TextGrid'
+
+        if not os.path.exists(tg_file):
+            raise IOError(tg_file)
+        
+        tg=TextGrid()
+        tg.load(tg_file)
+
+        win_len_s=win_len*fs
+        win_shift_s=win_shift*fs
+
+        win_num=np.floor((utt.data.size-win_len_s)/win_shift_s).astype('int')+1
+
+        seq=tg.tiers[0].toSequence(win_num,win_shift,win_len)
+
+
+        fixes={'h\\#':'h#','ax-h':'axh'}
+
+        lc=-1
+        for ph in seq:
+            if ph in fixes:
+                ph = fixes[ph]
+            c=timit61.index(ph)
+            if c!=lc:
+                utt.phones.append(c)
+                utt.ph_lens.append(1)
+                lc=c
+            else:
+                utt.ph_lens[-1]+=1
+
         ret.append(utt)
     return ret
 
@@ -232,17 +281,15 @@ r61t39={"pcl":"sil","tcl":"sil","kcl":"sil","nx":"n","pau":"sil","ao":"aa","ax":
     "ax-r":"er","ax-h":"ah","axh":"ah"}
 
 
-r183t61id=np.array([0, 0, 0, 3, 3, 3, 6, 6, 6, 7, 7, 7, 13, 13, 13, 16, 16, 16, 
-    58, 58, 58, 41, 41, 41, 15, 15, 15, 42, 42, 42, 28, 28, 28, 2, 2, 2, 
-    43, 43, 43, 29, 29, 29, 31, 31, 31, 38, 38, 38, 4, 4, 4, 1, 1, 1, 
-    39, 39, 39, 11, 11, 11, 20, 20, 20, 56, 56, 56, 18, 18, 18, 1,
-    2, 12, 12, 45, 45, 45, 44, 44, 44, 21, 21, 21, 14, 14, 14, 
-    36, 36, 36, 34, 34, 34, 9, 9, 9, 5, 5, 5, 24, 24, 24, 37, 37, 37, 
-    46, 46, 46, 32, 32, 32, 48, 48, 48, 47, 47, 47, 49, 49, 49, 22, 22, 22, 
-    23, 23, 23, 57, 57, 57, 55, 55, 55, 51, 51, 51, 19, 19, 19, 26, 26, 26, 
-    50, 50, 50, 53, 53, 53, 52, 52, 52, 25, 25, 25, 54, 54, 54, 10, 10, 10, 
-    30, 30, 30, 27, 27, 27, 60, 60, 60, 40, 40, 40, 33, 33, 33, 8, 8, 8, 
-    35, 35, 35, 59, 59, 59, 17, 17, 17])
+r183t61id=np.array([0, 0, 0, 3, 3, 3, 6, 6, 6, 7, 7, 7, 13, 13, 13, 16, 16, 16, 58, 58, 58, 
+    41, 41, 41, 15, 15, 15, 42, 42, 42, 28, 28, 28, 2, 2, 2, 43, 43, 43, 29, 29, 29, 31, 31, 
+    31, 38, 38, 38, 4, 4, 4, 1, 1, 1, 39, 39, 39, 11, 11, 11, 20, 20, 20, 56, 56, 56, 18, 
+    18, 18, 12, 12, 12, 45, 45, 45, 44, 44, 44, 21, 21, 21, 14, 14, 14, 36, 36, 36, 34, 34, 
+    34, 9, 9, 9, 5, 5, 5, 24, 24, 24, 37, 37, 37, 46, 46, 46, 32, 32, 32, 48, 48, 48, 47, 47, 
+    47, 49, 49, 49, 22, 22, 22, 23, 23, 23, 57, 57, 57, 55, 55, 55, 51, 51, 51, 19, 19, 19, 
+    26, 26, 26, 50, 50, 50, 53, 53, 53, 52, 52, 52, 25, 25, 25, 54, 54, 54, 10, 10, 10, 30, 
+    30, 30, 27, 27, 27, 60, 60, 60, 40, 40, 40, 33, 33, 33, 8, 8, 8, 35, 35, 35, 59, 59, 59, 
+    17, 17, 17])
 
 timit183=['aa_s2', 'aa_s3', 'aa_s4', 'ae_s2', 'ae_s3', 'ae_s4', 'ah_s2', 'ah_s3', 
     'ah_s4', 'ao_s2', 'ao_s3', 'ao_s4', 'aw_s2', 'aw_s3', 'aw_s4', 'ax_s2', 'ax_s3', 

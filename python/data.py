@@ -57,7 +57,7 @@ class Corpus:
 
     def __iter__(self):
         for c in range(self.n):
-            yield get(slice(self.r[c],self.r[c+1]))
+            yield self.get(slice(self.r[c],self.r[c+1]))
 
 
     def reset(self):
@@ -86,5 +86,15 @@ class Corpus:
         if self.merge_utts:
             inputs=np.vstack(inputs)
             outputs=np.concatenate(outputs)
+        else:
+            inputs=np.array(inputs)
+            outputs=np.array(outputs)
 
         return (inputs,outputs)
+
+    def getMaxLen(self):
+        m=0
+        for u in self.h5f:    
+            if m<self.h5f[u+'/out'].size:
+                m=self.h5f[u+'/out'].size
+        return m
