@@ -1,3 +1,4 @@
+import sys
 import h5py
 import numpy as np
 from random import shuffle
@@ -98,3 +99,45 @@ class Corpus:
             if m<self.h5f[u+'/out'].size:
                 m=self.h5f[u+'/out'].size
         return m
+
+class Report:
+    def __init__(self):
+        self.loss=[]
+        self.acc=[]
+        self.samp_num=[]
+    
+    def add(self,loss,acc=None,samp_num=None):
+        self.loss.append(loss)
+        if acc:
+            self.acc.append(acc)
+        if samp_num:
+            self.samp_num.append(samp_num)
+        
+    def getMeanLoss(self):
+        return np.mean(self.loss)
+    
+    def getAveAcc(self):
+        if len(self.acc)==0:
+            return 0
+        else:
+            return np.average(self.acc,weights=self.samp_num)
+    
+    def printout(self,title):
+        print '{} loss: {}'.format(title,self.getMeanLoss())
+        if len(self.acc)>0:
+            print '{} PER: {:%}'.format(title,1-self.getAveAcc())     
+        sys.stdout.flush()
+
+class History:
+    def __init__(self, name):
+        self.name=name
+        self.r=Report()
+        self.loss=[]
+        self.acc=[]
+
+    def log(self):
+        self.r.printout(self.name)
+        self.loss.append(self.r.getMeanLoss())
+        self.acc.append(self.r.getAveAcc())
+        self.r=Report()
+
