@@ -106,22 +106,24 @@ class Report:
         self.acc=[]
         self.samp_num=[]
     
-    def add(self,loss,acc=None,samp_num=None):
+    def addL(self,loss):
         if type(loss) is list:
             self.loss.extend(loss)    
         else:
             self.loss.append(loss)
-        if acc:
-            if type(acc) is list:
-                self.acc.extend(acc)
-            else:
-                self.acc.append(acc)
-        if samp_num:
-            if type(samp_num) is list:
-                self.samp_num.extend(samp_num)
-            else:
-                self.samp_num.append(samp_num)
-        
+                
+    def addLA(self,loss,acc,samp_num):
+        if type(loss) is list:
+            self.loss.extend(loss)    
+        else:
+            self.loss.append(loss)        
+        if type(samp_num) is list:
+            self.samp_num.extend(samp_num)              
+            self.acc.extend(acc)
+        else:
+            self.samp_num.append(samp_num)
+            self.acc.append(acc)
+
     def getMeanLoss(self):
         return np.mean(self.loss)
     
