@@ -8,8 +8,7 @@ from tqdm import *
 sys.path.append('../PyHTK/python')
 
 from HTKFeat import MFCC_HTK
-from TextGrid import *
-
+from PHN import PHN
 
 class Segment:
     def __init__(self):
@@ -110,21 +109,26 @@ def prepare_corp_dir(list_file,path,win_len=0.025,win_shift=0.01):
         
         assert fs == 16000
 
-        tg_file=path+'/'+f+'.TextGrid'
+        tg_file=path+'/'+f+'.phn'
 
         if not os.path.exists(tg_file):
             raise IOError(tg_file)
         
-        tg=TextGrid()
-        tg.load(tg_file)
+        phn=PHN()
+        phn.load(tg_file)
 
         win_len_s=win_len*fs
         win_shift_s=win_shift*fs
 
         win_num=np.floor((utt.data.size-win_len_s)/win_shift_s).astype('int')+1
 
-        seq=tg.tiers[0].toSequence(win_num,win_shift,win_len)
+        if phn.segments[0].xmin > 0:
+            phn.segments[0].xmin = 0
 
+        if phn.segments[-1].xmax < utt.data.size:
+            phn.segments[-1].xmax = utt.data.size
+
+        seq=phn.toSequence(win_num,win_shift_s,win_len_s)
 
         fixes={'h\\#':'h#','ax-h':'axh'}
 
@@ -132,6 +136,8 @@ def prepare_corp_dir(list_file,path,win_len=0.025,win_shift=0.01):
         for ph in seq:
             if ph in fixes:
                 ph = fixes[ph]
+            if ph not in timit61:
+                raise RuntimeError('Error in file '+f)
             c=timit61.index(ph)
             if c!=lc:
                 utt.phones.append(c)
